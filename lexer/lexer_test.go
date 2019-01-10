@@ -21,7 +21,7 @@ func actionNecessary(err error, t *testing.T) bool {
 	return false
 }
 
-func GetTestableLexer(t *testing.T) (*Lexer, *os.File) {
+func getTestableLexer(t *testing.T) (*Lexer, *os.File) {
 	reader, err := os.Open(ifilePath)
 	if actionNecessary(err, t) {
 		return nil, nil
@@ -31,12 +31,12 @@ func GetTestableLexer(t *testing.T) (*Lexer, *os.File) {
 }
 
 func TestNewLexer(t *testing.T) {
-	_, file := GetTestableLexer(t)
+	_, file := getTestableLexer(t)
 	actionNecessary(file.Close(), t)
 }
 
 func TestNext(t *testing.T) {
-	lexr, ifile := GetTestableLexer(t)
+	lexr, ifile := getTestableLexer(t)
 
 	ofile, err := os.OpenFile(ofilePath,
 		os.O_WRONLY|os.O_CREATE, 0755)
@@ -73,7 +73,7 @@ func TestNext(t *testing.T) {
 }
 
 func TestEmit(t *testing.T) {
-	lexr, ifile := GetTestableLexer(t)
+	lexr, ifile := getTestableLexer(t)
 
 	for r := lexr.Next(); r != EOF; r = lexr.Next() {
 		if r == '\n' {
