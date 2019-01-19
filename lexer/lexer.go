@@ -54,9 +54,11 @@ func (l *Lexer) Peek() rune {
 	return r
 }
 
+func (l *Lexer) Reset() { l.pos, l.start, l.width = 0, 0, 0 }
+
 // Reads runes from the Reader instance into a private buffer
 func (l *Lexer) read() rune {
-	l.pos, l.start, l.width = 0, 0, 0
+	l.Reset()
 
 	l.length, _ = l.reader.Read(l.buffer)
 

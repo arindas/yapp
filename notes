@@ -1,0 +1,21 @@
+// minimal grammar which requires a push down automata
+A: aAb|nil
+
+expr:
+	term
+	expr+term
+	expr-term
+term:
+	prim
+	term*prim
+	term/prim
+	term%prim
+prim:
+	base
+	base^prim
+base:
+	(expr)
+	-base
+	number
+	id
+
