@@ -1,0 +1,51 @@
+
+currState =>   char:[Storer] path received<- 97 path taken-> 97
+
+currState =>   char:[Storer] path received<- 115 
+currState =>   char:[Storer] path received<- 97 path taken-> 97
+
+currState =>   char:[Storer] path received<- 98 path taken-> 98
+
+currState =>  char:[Matcher] path received<- 0 path taken-> 0
+incoming path<= 98
+
+currState =>   char:[Storer] path received<- 97 path taken-> 97
+
+currState =>   char:[Storer] path received<- 97 path taken-> 97
+
+currState =>   char:[Storer] path received<- 98 path taken-> 98
+
+currState =>  char:[Matcher] path received<- 98 path taken-> 98
+incoming path<= 98
+
+currState =>  char:[Matcher] path received<- 0 path taken-> 0
+incoming path<= 98
+
+currState =>   char:[Storer] path received<- 97 path taken-> 97
+
+currState =>   char:[Storer] path received<- 98 path taken-> 98
+
+currState =>  char:[Matcher] path received<- 97 path taken-> 97
+incoming path<= 98
+
+currState =>   char:[Storer] path received<- 98 path taken-> 98
+
+currState =>  char:[Matcher] path received<- 97 path taken-> 97
+incoming path<= 98
+
+currState =>   char:[Storer] path received<- 97 path taken-> 97
+
+currState =>   char:[Storer] path received<- 98 path taken-> 98
+
+currState =>  char:[Matcher] path received<- 98 path taken-> 98
+incoming path<= 98
+
+currState =>  char:[Matcher] path received<- 97 path taken-> 97
+incoming path<= 98
+
+currState =>   char:[Storer] path received<- 98 path taken-> 98
+
+currState =>  char:[Matcher] path received<- 97 path taken-> 97
+incoming path<= 98
+PASS
+ok  	yapp/lexer	0.004s

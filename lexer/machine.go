@@ -37,8 +37,11 @@ func (m *RuneMatcher) Match(r rune) bool {
 	tos := m.stack.Back()
 	R, registered := m.matchmap[r]
 	return tos != nil && registered &&
-		r == R && m.stack.Remove(tos) != nil
+		R == m.stack.Remove(tos).(rune)
 }
+
+// Reset this matcher
+func (m *RuneMatcher) Reset() { m.stack.Init() }
 
 // RuneMatcher is in matched state if its stack is completely empty
 func (m *RuneMatcher) IsMatched() bool { return m.stack.Back() == nil }
@@ -64,20 +67,20 @@ func (l LexStateType) String() string {
 
 // Individual state in a pushdown automata
 type LexState struct {
-	assocTokenType TokenType
-	stateType      LexStateType
 	emitter        bool
+	assocTokenType TokenType
 	next           map[Path]*LexState
+	stateType      LexStateType
 }
 
-func NewLexState(tt TokenType, st LexStateType, isEmitter bool) *LexState {
-	return &LexState{tt, st, isEmitter, make(map[Path]*LexState)}
+func NewLexState(tt TokenType, typ LexStateType, isEmitter bool) *LexState {
+	return &LexState{isEmitter, tt, make(map[Path]*LexState), typ}
 }
 
 func (l *LexState) AddDest(p Path, dest *LexState) { l.next[p] = dest }
 
 func (state LexState) String() string {
-	return fmt.Sprintf("{%v}:[%v]",
+	return fmt.Sprintf("%v:[%v]",
 		state.assocTokenType, state.stateType)
 }
 
@@ -111,22 +114,26 @@ func (m *Machine) Reset() {
 	// reset last read rune to default value
 	m.lastReadRune = 0
 	// empty PDA stack
-	m.matcher.stack.Init()
+	m.matcher.Reset()
 }
 
 // Attaches new lexer to this machine and resets it.
 func (m *Machine) AttachLexer(l *Lexer) { m.lexer = l; m.Reset() }
 
-func (m *Machine) CanStep() bool { return m.currState != m.bounds.end }
+// State whether this machine can step over to a new state
+func (m *Machine) CanStep() bool {
+	return m.currState != nil &&
+		m.currState != m.bounds.end
+}
 
 // States whether this machine has reached the finishing state.
 func (m *Machine) Finished() bool { return m.currState == m.bounds.end }
 
 func (m *Machine) Step() error {
 
-	fmt.Printf("currState: %v ", m.currState)
-
+	fmt.Printf("\ncurrState => %15v ", m.currState)
 	path := Path(m.lexer.Next())
+	fmt.Printf("path received<- %v ", path)
 
 	var nextState *LexState
 	var pathExists bool
@@ -135,32 +142,34 @@ func (m *Machine) Step() error {
 		nextState, pathExists = m.currState.next[DefaultPath]
 	}
 
-	if !pathExists || nextState == nil {
+	if !pathExists {
 		return fmt.Errorf("Invalid state: %v, no path with input: %v",
 			m.currState, rune(path))
 	}
 
-	fmt.Printf("path: %v\n", path)
+	fmt.Printf("path taken-> %v\n", path)
 
 	switch m.currState.stateType {
 	case Buffer:
 		m.lexer.Backup()
 	case Storer:
-		if !m.matcher.Store(rune(path)) {
-			return fmt.Errorf("unregistered rune: %v\n", path)
+		if m.lastReadRune != 0 && !m.matcher.Store(m.lastReadRune) {
+			return fmt.Errorf("unregistered rune: %v", m.lastReadRune)
 		}
 	case Matcher:
+		fmt.Printf("incoming path<= %v\n", m.lastReadRune)
 		if !m.matcher.Match(m.lastReadRune) {
-			return fmt.Errorf("unmatched rune: %v\n", path)
+			return fmt.Errorf("unmatched rune: %v", m.lastReadRune)
 		}
 	}
 
 	if m.currState.emitter {
 		if m.currState.stateType == Buffer {
-			return fmt.Errorf("unsuitable state: %v for emitting token.\n",
+			return fmt.Errorf(
+				"unsuitable state: %v for emitting token.",
 				m.currState)
 		} else {
-			m.tokens <- m.lexer.Emit(nextState.assocTokenType)
+			m.tokens <- m.lexer.Emit(m.currState.assocTokenType)
 		}
 	}
 
@@ -170,18 +179,20 @@ func (m *Machine) Step() error {
 
 }
 
-func (m *Machine) NextToken() (Token, bool) {
-	var err error = nil
-	for err != nil {
+func (m *Machine) NextToken() (Token, error) {
+	for m.CanStep() {
 		select {
 		case token := <-m.tokens:
-			return token, m.CanStep()
+			return token, nil
 		default:
-			err = m.Step()
+			if err := m.Step(); err != nil {
+				fmt.Errorf("%v\n", err)
+				return EOLexToken, err
+			}
 		}
 	}
 
-	panic("Not reached")
+	return EOLexToken, nil
 }
 
 // func (m *Machine) Run() chan Token {

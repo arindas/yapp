@@ -18,6 +18,12 @@ type Token struct {
 	Type   TokenType
 }
 
+// Token to denote error
+var ErrorToken = Token{"error", 0}
+
+// Token to denote end of lexing
+var EOLexToken = Token{"eolex", 0}
+
 func (t Token) String() string {
 	if len(t.Lexeme) > 10 {
 		return fmt.Sprintf("%10q...", t.Lexeme)
