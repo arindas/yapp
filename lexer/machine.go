@@ -131,9 +131,7 @@ func (m *Machine) Finished() bool { return m.currState == m.bounds.end }
 
 func (m *Machine) Step() error {
 
-	fmt.Printf("\ncurrState => %15v ", m.currState)
 	path := Path(m.lexer.Next())
-	fmt.Printf("path received<- %v ", path)
 
 	var nextState *LexState
 	var pathExists bool
@@ -147,8 +145,6 @@ func (m *Machine) Step() error {
 			m.currState, rune(path))
 	}
 
-	fmt.Printf("path taken-> %v\n", path)
-
 	switch m.currState.stateType {
 	case Buffer:
 		m.lexer.Backup()
@@ -157,7 +153,6 @@ func (m *Machine) Step() error {
 			return fmt.Errorf("unregistered rune: %v", m.lastReadRune)
 		}
 	case Matcher:
-		fmt.Printf("incoming path<= %v\n", m.lastReadRune)
 		if !m.matcher.Match(m.lastReadRune) {
 			return fmt.Errorf("unmatched rune: %v", m.lastReadRune)
 		}
@@ -194,14 +189,3 @@ func (m *Machine) NextToken() (Token, error) {
 
 	return EOLexToken, nil
 }
-
-// func (m *Machine) Run() chan Token {
-// 	 go func() {
-//	 	 var err error = nil
-//		 for ; err == nil &&
-//			 m.CanStep(); err = m.Step() {
-//		 }
-//	 }()
-//
-//	 return m.Tokens
-// }
