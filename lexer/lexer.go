@@ -8,7 +8,7 @@ import (
 )
 
 // rune to denote EOF
-const EOF rune = 0
+const EOF rune = -1
 
 type TokenType interface{}
 

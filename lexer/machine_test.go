@@ -45,7 +45,7 @@ var testCases = []testCase{
 	{"asd", false},
 	{"ab", true},
 	{"aabb", true},
-	{"abab", true},
+	{"abab", false},
 	{"baba", false},
 	{"abba", false},
 	{"baab", false},
