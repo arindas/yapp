@@ -5,12 +5,13 @@ import (
 	"fmt"
 )
 
-// Component to keep track of matchable runes
+// RuneMatcher is a component to keep track of matchable runes
 type RuneMatcher struct {
 	stack    *list.List    // stack for keeping record of matched characters
 	matchmap map[rune]rune // map to record character match mappings
 }
 
+// NewRuneMatcher creates a new instance of RuneMatcher
 func NewRuneMatcher() *RuneMatcher {
 	return &RuneMatcher{
 		stack:    list.New(),
@@ -18,12 +19,12 @@ func NewRuneMatcher() *RuneMatcher {
 	}
 }
 
-// Enlists a new mapping in this RuneMatcher
+// EnlistMapping enlists a new mapping in this RuneMatcher
 func (m *RuneMatcher) EnlistMapping(r1, r2 rune) {
 	m.matchmap[r1], m.matchmap[r2] = r2, r1
 }
 
-// Stores a rune to matched against in this RuneMatcher
+// Store stores a rune to matched against in this RuneMatcher
 func (m *RuneMatcher) Store(r rune) bool {
 	var wasStored bool
 	if _, wasStored = m.matchmap[r]; wasStored {
@@ -32,7 +33,7 @@ func (m *RuneMatcher) Store(r rune) bool {
 	return wasStored
 }
 
-// Match the rune against the rune at TOS of matcher's stack
+// Match matches the given rune against the rune at TOS of matcher's stack
 func (m *RuneMatcher) Match(r rune) bool {
 	tos := m.stack.Back()
 	R, registered := m.matchmap[r]
@@ -40,32 +41,44 @@ func (m *RuneMatcher) Match(r rune) bool {
 		R == m.stack.Remove(tos).(rune)
 }
 
-// Reset this matcher
+// Reset resets this matcher
 func (m *RuneMatcher) Reset() { m.stack.Init() }
 
-// RuneMatcher is in matched state if its stack is completely empty
+// IsMatched checks whether the RuneMatcher is in
+// matched state if its stack is completely empty
 func (m *RuneMatcher) IsMatched() bool { return m.stack.Back() == nil }
 
+// Path denotes a link or input to traverse
+// from the current state to the next state
 type Path rune
 
+// DefaultPath is the path to be taken
+// in the event of unexpected or no input
 const DefaultPath Path = 0
 
+// LexStateType denotes the type of the state for a LexMachine
 type LexStateType int
 
 const (
-	Buffer  LexStateType = 0
-	Feeder  LexStateType = 1
-	Storer  LexStateType = 2
+	// Buffer pushes back input after consuming it
+	Buffer LexStateType = 0
+	// Feeder simply feeds on input
+	Feeder LexStateType = 1
+	// Storer stores runes to be mathced
+	Storer LexStateType = 2
+	// Matcher matches runes
 	Matcher LexStateType = 3
 )
 
+// String (LexStateType) produces a string representation of a LexStateType
 func (l LexStateType) String() string {
 	stateNames := []string{"Buffer",
 		"Feeder", "Storer", "Matcher"}
 	return stateNames[int(l)]
 }
 
-// Individual state in a pushdown automata
+// LexState denotes an individual
+// state in a pushdown automata
 type LexState struct {
 	emitter        bool
 	assocTokenType TokenType
@@ -73,22 +86,27 @@ type LexState struct {
 	stateType      LexStateType
 }
 
+// NewLexState creates a new instance of LexState
 func NewLexState(tt TokenType, typ LexStateType, isEmitter bool) *LexState {
 	return &LexState{isEmitter, tt, make(map[Path]*LexState), typ}
 }
 
+// AddDest adds a new LexState as a neighbour to this LexState
 func (l *LexState) AddDest(p Path, dest *LexState) { l.next[p] = dest }
 
-func (state LexState) String() string {
+// String (LexState) produces a string representation of LexState
+func (l LexState) String() string {
 	return fmt.Sprintf("%v:[%v]",
-		state.assocTokenType, state.stateType)
+		l.assocTokenType, l.stateType)
 }
 
+// Bounds represents the bounding states of lex machine
 type Bounds struct {
 	start, end *LexState
 }
 
-// (PDA) Represents a lexing machine attached to the "tape reader"
+// Machine is a PDA which represents a lexing
+// machine attached to the "tape reader"
 type Machine struct {
 	lexer        *Lexer       // lexer for reading: tape reader
 	bounds       Bounds       // bounds of machine to ensure finiteness
@@ -98,11 +116,12 @@ type Machine struct {
 	matcher      *RuneMatcher // stack associated with states of this machine
 }
 
+// NewMachine creates a new instance of lexer.Machine
 func NewMachine(lexer *Lexer, bounds Bounds, matcher *RuneMatcher) *Machine {
 	return &Machine{lexer, bounds, make(chan Token, 2), bounds.start, 0, matcher}
 }
 
-// Resets all the components of this machine.
+// Reset resets all the components of this machine.
 func (m *Machine) Reset() {
 	// reset lexer: "tape reader"
 	m.lexer.Reset()
@@ -117,18 +136,19 @@ func (m *Machine) Reset() {
 	m.matcher.Reset()
 }
 
-// Attaches new lexer to this machine and resets it.
+// AttachLexer attaches new lexer to this machine and resets it.
 func (m *Machine) AttachLexer(l *Lexer) { m.lexer = l; m.Reset() }
 
-// State whether this machine can step over to a new state
+// CanStep states whether this machine can step over to a new state
 func (m *Machine) CanStep() bool {
 	return m.currState != nil &&
 		m.currState != m.bounds.end
 }
 
-// States whether this machine has reached the finishing state.
+// Finished states whether this machine has reached the finishing state.
 func (m *Machine) Finished() bool { return m.currState == m.bounds.end }
 
+// Step steps one LexState of the machine
 func (m *Machine) Step() error {
 
 	path := Path(m.lexer.Next())
@@ -161,11 +181,10 @@ func (m *Machine) Step() error {
 	if m.currState.emitter {
 		if m.currState.stateType == Buffer {
 			return fmt.Errorf(
-				"unsuitable state: %v for emitting token.",
+				"unsuitable state: %v for emitting token",
 				m.currState)
-		} else {
-			m.tokens <- m.lexer.Emit(m.currState.assocTokenType)
 		}
+		m.tokens <- m.lexer.Emit(m.currState.assocTokenType)
 	}
 
 	m.currState, m.lastReadRune = nextState, rune(path)
@@ -174,6 +193,7 @@ func (m *Machine) Step() error {
 
 }
 
+// NextToken returns the next Token from the channel
 func (m *Machine) NextToken() (Token, error) {
 	for m.CanStep() {
 		select {
@@ -181,7 +201,6 @@ func (m *Machine) NextToken() (Token, error) {
 			return token, nil
 		default:
 			if err := m.Step(); err != nil {
-				fmt.Errorf("%v\n", err)
 				return EOLexToken, err
 			}
 		}

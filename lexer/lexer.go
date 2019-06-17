@@ -7,21 +7,22 @@ import (
 	"unicode/utf8"
 )
 
-// rune to denote EOF
+// EOF denotes the end of file
 const EOF rune = -1
 
+// TokenType denotes the type of Token
 type TokenType interface{}
 
-// Represents the atomic semantic entity in a text corpus
+// Token represents the atomic semantic entity in a text corpus
 type Token struct {
 	Lexeme string
 	Type   TokenType
 }
 
-// Token to denote error
+// ErrorToken is a Token to denote error
 var ErrorToken = Token{"error", 0}
 
-// Token to denote end of lexing
+// EOLexToken is Token to denote end of lexing
 var EOLexToken = Token{"eolex", 0}
 
 func (t Token) String() string {
@@ -32,7 +33,7 @@ func (t Token) String() string {
 	return fmt.Sprintf("%q", t.Lexeme)
 }
 
-// Reperesents a Lexing machine reading runes from a Reader
+// Lexer reperesents a lexing machine reading runes from a Reader
 type Lexer struct {
 	reader io.Reader
 	buffer []byte
@@ -42,17 +43,17 @@ type Lexer struct {
 	width  int // width of the last read rune
 }
 
-// Ignores the last read rune
+// Ignore ignores the last read rune
 func (l *Lexer) Ignore() {
 	l.start = l.pos
 }
 
-// Unreads the last read rune
+// Backup unreads the last read rune
 func (l *Lexer) Backup() {
 	l.pos -= l.width
 }
 
-// Peeks at the next rune in the buffer
+// Peek peeks at the next rune in the buffer
 func (l *Lexer) Peek() rune {
 	r := l.Next()
 
@@ -60,9 +61,10 @@ func (l *Lexer) Peek() rune {
 	return r
 }
 
+// Reset resets the lexer state
 func (l *Lexer) Reset() { l.pos, l.start, l.width = 0, 0, 0 }
 
-// Reads runes from the Reader instance into a private buffer
+// Read reads runes from the Reader instance into a private buffer
 func (l *Lexer) read() rune {
 	l.Reset()
 
@@ -75,7 +77,7 @@ func (l *Lexer) read() rune {
 	return l.Next()
 }
 
-// Reads the next rune present in the private buffer
+// Next reads the next rune present in the private buffer
 func (l *Lexer) Next() (r rune) {
 	if l.pos >= l.length {
 		return l.read()
@@ -93,7 +95,7 @@ func (l *Lexer) Next() (r rune) {
 	return r
 }
 
-// Emits a token of the given TokenType
+// Emit emits a token of the given TokenType
 func (l *Lexer) Emit(t TokenType) Token {
 	token := Token{
 		Lexeme: string(l.buffer[l.start:l.pos]),
@@ -103,8 +105,8 @@ func (l *Lexer) Emit(t TokenType) Token {
 	return token
 }
 
-// Create a new instance of Lexer from a Reader instance
-// and the capacity of the buffer to be maintained in the lexer
+// NewLexer creates a new instance of Lexer from a
+// Reader instance with a given buffer capacity.
 func NewLexer(reader io.Reader, capacity int) *Lexer {
 	l := &Lexer{
 		reader: reader,
